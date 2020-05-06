@@ -8,12 +8,14 @@ import { Place } from '../place.model';
   styleUrls: ['./discover.page.scss'],
 })
 export class DiscoverPage implements OnInit {
-
   loadedPlaces: Place[];
+  listedLoadadPlaces: Place[];
+
   constructor(private placesService: PlacesService) { }
 
   ngOnInit() {
     this.loadedPlaces = this.placesService.Places;
+    this.listedLoadadPlaces = this.loadedPlaces.slice(1);
   }
 
 }
