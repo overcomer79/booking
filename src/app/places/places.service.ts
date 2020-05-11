@@ -1,9 +1,20 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
-import { take, map, tap, delay } from 'rxjs/operators';
+import { take, map, tap, delay, switchMap } from 'rxjs/operators';
 
 import { Place } from './place.model';
 import { AuthService } from '../auth/auth.service';
+
+interface PlaceResponse {
+  availableFrom: string;
+  availableTo: string;
+  description: string;
+  imageUrl: string;
+  price: number;
+  title: string;
+  userId: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -11,38 +22,38 @@ import { AuthService } from '../auth/auth.service';
 export class PlacesService {
   // tslint:disable-next-line: variable-name
   private _places = new BehaviorSubject<Place[]>([
-    new Place(
-      'p1',
-      'Castello di Lagopesole',
-      'Il castello medioevale dei tuoi sogni',
-      'https://upload.wikimedia.org/wikipedia/commons/f/fc/CastelloLagopesole.jpg',
-      149.99,
-      new Date('2020-01-01'),
-      new Date('2020-12-31'),
-      'xyz'
-    ),
-    new Place(
-      'p2',
-      'Hotel Castello',
-      'Rivivi le esperienze del passato a Modena',
-      'https://q-cf.bstatic.com/images/hotel/max1280x900/668/6685679.jpg',
-      189.99,
-      new Date('2020-01-01'),
-      new Date('2020-12-31'),
-      'abc'
-    ),
-    new Place(
-      'p3',
-      'Hotel Dei Giardini',
-      'Hotel romantico, dove passare delle notti indimenticabili',
-      'https://hoteldeigiardini.com/wp-content/uploads/2018/08/SLIDE_piscina5.jpg',
-      99.99,
-      new Date('2020-01-01'),
-      new Date('2020-12-31'),
-      'abc'
-    ),
+    // new Place(
+    //   'p1',
+    //   'Castello di Lagopesole',
+    //   'Il castello medioevale dei tuoi sogni',
+    //   'https://upload.wikimedia.org/wikipedia/commons/f/fc/CastelloLagopesole.jpg',
+    //   149.99,
+    //   new Date('2020-01-01'),
+    //   new Date('2020-12-31'),
+    //   'xyz'
+    // ),
+    // new Place(
+    //   'p2',
+    //   'Hotel Castello',
+    //   'Rivivi le esperienze del passato a Modena',
+    //   'https://q-cf.bstatic.com/images/hotel/max1280x900/668/6685679.jpg',
+    //   189.99,
+    //   new Date('2020-01-01'),
+    //   new Date('2020-12-31'),
+    //   'abc'
+    // ),
+    // new Place(
+    //   'p3',
+    //   'Hotel Dei Giardini',
+    //   'Hotel romantico, dove passare delle notti indimenticabili',
+    //   'https://hoteldeigiardini.com/wp-content/uploads/2018/08/SLIDE_piscina5.jpg',
+    //   99.99,
+    //   new Date('2020-01-01'),
+    //   new Date('2020-12-31'),
+    //   'abc'
+    // ),
   ]);
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private http: HttpClient) {}
 
   get places() {
     return this._places.asObservable();
@@ -57,6 +68,38 @@ export class PlacesService {
     );
   }
 
+  fetchPlaces() {
+    return this.http
+      .get<{ [key: string]: PlaceResponse }>(
+        'https://ionic-booking-e5760.firebaseio.com/offered-places.json'
+      )
+      .pipe(
+        map((resData) => {
+          const places: Place[] = [];
+          for (const key in resData) {
+            if (resData.hasOwnProperty(key)) {
+              places.push(
+                new Place(
+                  key,
+                  resData[key].title,
+                  resData[key].description,
+                  resData[key].imageUrl,
+                  resData[key].price,
+                  new Date(resData[key].availableFrom),
+                  new Date(resData[key].availableTo),
+                  resData[key].userId
+                )
+              );
+            }
+          }
+          return places;
+        }),
+        tap((places) => {
+          this._places.next(places);
+        })
+      );
+  }
+
   addPlace(
     title: string,
     description: string,
@@ -64,6 +107,7 @@ export class PlacesService {
     dateFrom: Date,
     dateTo: Date
   ) {
+    let generatedId: string;
     const newPlace = new Place(
       Math.random().toString(),
       title,
@@ -74,14 +118,25 @@ export class PlacesService {
       dateTo,
       this.authService.userId
     );
-
-    return this.places.pipe(
-      take(1),
-      delay(1000),
-      tap((places) => {
-        this._places.next(places.concat(newPlace));
-      })
-    );
+    return this.http
+      .post<{ name: string }>(
+        'https://ionic-booking-e5760.firebaseio.com/offered-places.json',
+        {
+          ...newPlace,
+          id: null,
+        }
+      )
+      .pipe(
+        switchMap((resData) => {
+          generatedId = resData.name;
+          return this.places;
+        }),
+        take(1),
+        tap((places) => {
+          newPlace.id = generatedId;
+          this._places.next(places.concat(newPlace));
+        })
+      );
   }
 
   updatePlace(placeId: string, title: string, description: string) {
