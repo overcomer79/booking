@@ -1,5 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { NavController, LoadingController } from '@ionic/angular';
+import {
+  NavController,
+  LoadingController,
+  AlertController,
+} from '@ionic/angular';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -24,7 +28,8 @@ export class EditOfferPage implements OnInit, OnDestroy {
     private placesService: PlacesService,
     private navCtrl: NavController,
     private router: Router,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private alertCtrl: AlertController
   ) {}
 
   ngOnInit() {
@@ -35,9 +40,8 @@ export class EditOfferPage implements OnInit, OnDestroy {
       }
       this.placeId = paramMap.get('placeId');
       this.isLoading = true;
-      this.placesSub = this.placesService
-        .getPlace(this.placeId)
-        .subscribe((place) => {
+      this.placesSub = this.placesService.getPlace(this.placeId).subscribe(
+        (place) => {
           this.place = place;
           this.form = new FormGroup({
             title: new FormControl(this.place.title, {
@@ -50,7 +54,27 @@ export class EditOfferPage implements OnInit, OnDestroy {
             }),
           });
           this.isLoading = false;
-        });
+        },
+        (error) => {
+          this.alertCtrl
+            .create({
+              header: 'Errore imprevisto',
+              message:
+                'I dati non possono essere recuperati. Per favore riprova più tardi',
+              buttons: [
+                {
+                  text: 'Okay',
+                  handler: () => {
+                    this.router.navigateByUrl('/places/tabs/offers');
+                  },
+                },
+              ],
+            })
+            .then((alertEl) => {
+              alertEl.present();
+            });
+        }
+      );
     });
   }
   onUpdateOffer() {
