@@ -9,24 +9,41 @@
 
 <ion-content class="ion-padding">
   <ion-segment value="all" (ionChange)="onFilterUpdate($event.detail.value)">
-    <ion-segment-button value="all" color="primary">All Places</ion-segment-button>
-    <ion-segment-button value="bookable" color="primary">Bookable Places</ion-segment-button>
+    <ion-segment-button value="all" color="primary"
+      >All Places</ion-segment-button
+    >
+    <ion-segment-button value="bookable" color="primary"
+      >Bookable Places</ion-segment-button
+    >
   </ion-segment>
-  <ion-grid *ngIf="!relevantPlaces || relevantPlaces.length <= 0">
+  <ion-grid *ngIf="isLoading">
     <ion-row>
       <ion-col size-sm="8" offset-sm="2" class="ion-text-center">
-        <p> Spiacente. Non ci sono posti disponibili al momento. Ritorna più tardi!</p>
+        <ion-spinner color="primary"></ion-spinner>
       </ion-col>
     </ion-row>
   </ion-grid>
-  <ion-grid *ngIf="relevantPlaces.length > 0">
+  <ion-grid
+    *ngIf="!isLoading && (!relevantPlaces || relevantPlaces.length <= 0)"
+  >
+    <ion-row>
+      <ion-col size-sm="8" offset-sm="2" class="ion-text-center">
+        <p>
+          Spiacente. Non ci sono posti disponibili al momento. Ritorna più
+          tardi!
+        </p>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+  <ion-grid *ngIf="!isLoading && relevantPlaces.length > 0">
     <ion-row>
       <ion-col size-sm="8" offset-sm="2" class="ion-text-center">
         <ion-card>
           <ion-card-header>
             <ion-card-title>{{ relevantPlaces[0].title }}</ion-card-title>
             <ion-card-subtitle
-              >{{ relevantPlaces[0].price | currency }} / Notte</ion-card-subtitle
+              >{{ relevantPlaces[0].price | currency }} /
+              Notte</ion-card-subtitle
             >
           </ion-card-header>
           <ion-img [src]="relevantPlaces[0].imageUrl"></ion-img>

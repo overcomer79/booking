@@ -15,6 +15,8 @@ import { Place } from '../../place.model';
 export class EditOfferPage implements OnInit, OnDestroy {
   place: Place;
   form: FormGroup;
+  placeId: string;
+  isLoading = false;
   private placesSub: Subscription;
 
   constructor(
@@ -31,22 +33,24 @@ export class EditOfferPage implements OnInit, OnDestroy {
         this.navCtrl.navigateBack('/places/tabs/offers');
         return;
       }
+      this.placeId = paramMap.get('placeId');
+      this.isLoading = true;
       this.placesSub = this.placesService
-        .getPlace(paramMap.get('placeId'))
+        .getPlace(this.placeId)
         .subscribe((place) => {
           this.place = place;
+          this.form = new FormGroup({
+            title: new FormControl(this.place.title, {
+              updateOn: 'blur',
+              validators: [Validators.required],
+            }),
+            description: new FormControl(this.place.description, {
+              updateOn: 'blur',
+              validators: [Validators.required, Validators.maxLength(180)],
+            }),
+          });
+          this.isLoading = false;
         });
-
-      this.form = new FormGroup({
-        title: new FormControl(this.place.title, {
-          updateOn: 'blur',
-          validators: [Validators.required],
-        }),
-        description: new FormControl(this.place.description, {
-          updateOn: 'blur',
-          validators: [Validators.required, Validators.maxLength(180)],
-        }),
-      });
     });
   }
   onUpdateOffer() {

@@ -13,6 +13,8 @@ import { PlacesService } from '../../places.service';
 })
 export class OfferBookingsPage implements OnInit, OnDestroy {
   place: Place;
+  isLoading = false;
+  placeId: string;
   private placesSub: Subscription;
 
   constructor(
@@ -27,10 +29,13 @@ export class OfferBookingsPage implements OnInit, OnDestroy {
         this.navCtrl.navigateBack('/places/tabs/offers');
         return;
       }
+      this.placeId = paramMap.get('placeId');
+      this.isLoading = true;
       this.placesSub = this.placesService
-        .getPlace(paramMap.get('placeId'))
+        .getPlace(this.placeId)
         .subscribe((place) => {
           this.place = place;
+          this.isLoading = false;
         });
     });
   }
