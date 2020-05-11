@@ -140,14 +140,15 @@ export class PlacesService {
   }
 
   updatePlace(placeId: string, title: string, description: string) {
+    let updatedPlaces: Place[];
+
     return this.places.pipe(
       take(1),
-      delay(1000),
-      tap((places) => {
+      switchMap((places) => {
         const updatedPlaceIndex = places.findIndex((pl) => pl.id === placeId);
-        const updatePlaces = [...places];
-        const oldPlace = updatePlaces[updatedPlaceIndex];
-        updatePlaces[updatedPlaceIndex] = new Place(
+        updatedPlaces = [...places];
+        const oldPlace = updatedPlaces[updatedPlaceIndex];
+        updatedPlaces[updatedPlaceIndex] = new Place(
           oldPlace.id,
           title,
           description,
@@ -157,7 +158,13 @@ export class PlacesService {
           oldPlace.availableTo,
           this.authService.userId
         );
-        this._places.next(updatePlaces);
+        return this.http.put(
+          `https://ionic-booking-e5760.firebaseio.com/offered-places/${placeId}.json`,
+          { ...updatedPlaces[updatedPlaceIndex], id: null }
+        );
+      }),
+      tap(() => {
+        this._places.next(updatedPlaces);
       })
     );
   }
