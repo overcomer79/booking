@@ -48,10 +48,11 @@ export class CreateBookingComponent implements OnInit {
     if (!this.form.valid || !this.datesValid()) {
       return;
     }
+
     this.modalCtrl.dismiss(
       {
         bookingData: {
-          firsName: this.form.value['first-name'],
+          firstName: this.form.value['first-name'],
           lastName: this.form.value['last-name'],
           guestNumber: +this.form.value['gest-number'],
           startDate: new Date(this.form.value['date-from']),
