@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   NavController,
   ModalController,
   ActionSheetController,
   LoadingController,
+  AlertController,
 } from '@ionic/angular';
 
 import { PlacesService } from '../../places.service';
@@ -33,7 +34,9 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
     private actionSheetCtrl: ActionSheetController,
     private bookingService: BookingService,
     private loadingCtrl: LoadingController,
-    private authService: AuthService
+    private authService: AuthService,
+    private alertCtrl: AlertController,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -43,13 +46,32 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
         return;
       }
       this.isLoading = true;
-      this.placesService
-        .getPlace(paramMap.get('placeId'))
-        .subscribe((place) => {
+      this.placesService.getPlace(paramMap.get('placeId')).subscribe(
+        (place) => {
           this.place = place;
           this.isBookable = place.userId !== this.authService.userId;
           this.isLoading = false;
-        });
+        },
+        (error) => {
+          this.alertCtrl
+            .create({
+              header: 'Errore imprevisto',
+              message:
+                'Non sono riuscito a recuperare i dati richiesti. Per favore riprova più tardi',
+              buttons: [
+                {
+                  text: 'Okay',
+                  handler: () => {
+                    this.router.navigateByUrl('/places/tabs/discover');
+                  },
+                },
+              ],
+            })
+            .then((alertEl) => {
+              alertEl.present();
+            });
+        }
+      );
     });
   }
 
