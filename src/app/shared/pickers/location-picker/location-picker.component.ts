@@ -1,4 +1,4 @@
-import { Component, OnInit, EventEmitter, Output } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
 import {
   ModalController,
   ActionSheetController,
@@ -21,6 +21,7 @@ import { PlaceLocation, Coordinates } from '../../../places/location.model';
 })
 export class LocationPickerComponent implements OnInit {
   @Output() locationPick = new EventEmitter<PlaceLocation>();
+  @Input() showPreview = false;
   selectedLocationImage: string;
   isLoading = false;
 
@@ -79,7 +80,7 @@ export class LocationPickerComponent implements OnInit {
       .create({
         header: 'Impossibile reperire la tua posizione',
         message: 'Utilizza la mappa per scegliere la posizione',
-        buttons: ['Okay']
+        buttons: ['Okay'],
       })
       .then((alertEl) => {
         alertEl.present();

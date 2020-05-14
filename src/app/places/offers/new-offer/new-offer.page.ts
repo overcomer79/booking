@@ -72,12 +72,12 @@ export class NewOfferPage implements OnInit {
     this.form.patchValue({ location });
   }
 
-  onImagePicked(image: string | File) {
+  onImagePicked(imageData: string | File) {
     let imageFile;
-    if (typeof image === 'string') {
+    if (typeof imageData === 'string') {
       try {
         imageFile = base64toBlob(
-          image.replace('data:image/jpeg;', ''),
+          imageData.replace('data:image/jpeg;base64,', ''),
           'image/jpeg'
         );
       } catch (err) {
@@ -85,7 +85,7 @@ export class NewOfferPage implements OnInit {
         return;
       }
     } else {
-      imageFile = ImageData;
+      imageFile = imageData;
     }
     this.form.patchValue({ image: imageFile });
   }
