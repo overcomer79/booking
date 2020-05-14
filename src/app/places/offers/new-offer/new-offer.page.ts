@@ -6,6 +6,27 @@ import { LoadingController } from '@ionic/angular';
 import { PlacesService } from '../../places.service';
 import { PlaceLocation } from '../../location.model';
 
+function base64toBlob(base64Data, contentType) {
+  contentType = contentType || '';
+  const sliceSize = 1024;
+  const byteCharacters = atob(base64Data);
+  const bytesLength = byteCharacters.length;
+  const slicesCount = Math.ceil(bytesLength / sliceSize);
+  const byteArrays = new Array(slicesCount);
+
+  for (let sliceIndex = 0; sliceIndex < slicesCount; ++sliceIndex) {
+    const begin = sliceIndex * sliceSize;
+    const end = Math.min(begin + sliceSize, bytesLength);
+
+    const bytes = new Array(end - begin);
+    for (let offset = begin, i = 0; offset < end; ++i, ++offset) {
+      bytes[i] = byteCharacters[offset].charCodeAt(0);
+    }
+    byteArrays[sliceIndex] = new Uint8Array(bytes);
+  }
+  return new Blob(byteArrays, { type: contentType });
+}
+
 @Component({
   selector: 'app-new-offer',
   templateUrl: './new-offer.page.html',
@@ -43,6 +64,7 @@ export class NewOfferPage implements OnInit {
         validators: [Validators.required],
       }),
       location: new FormControl(null, { validators: [Validators.required] }),
+      image: new FormControl(null),
     });
   }
 
@@ -50,11 +72,29 @@ export class NewOfferPage implements OnInit {
     this.form.patchValue({ location });
   }
 
+  onImagePicked(image: string | File) {
+    let imageFile;
+    if (typeof image === 'string') {
+      try {
+        imageFile = base64toBlob(
+          image.replace('data:image/jpeg;', ''),
+          'image/jpeg'
+        );
+      } catch (err) {
+        console.log(err);
+        return;
+      }
+    } else {
+      imageFile = ImageData;
+    }
+    this.form.patchValue({ image: imageFile });
+  }
+
   onCreateOffer() {
-    if (!this.form.valid) {
+    if (!this.form.valid || !this.form.get('image').value) {
       return;
     }
-
+    console.log(this.form.value);
     this.loadingCtrl
       .create({ message: 'Creando un nuovo posto...' })
       .then((loadingEl) => {

@@ -38,7 +38,7 @@ export class LocationPickerComponent implements OnInit {
       .create({
         header: 'Scegli',
         buttons: [
-          { text: 'Tua posizione', handler: () => this.locateUser() },
+          { text: 'Auto localizzazione', handler: () => this.locateUser() },
           { text: 'Scegli dalla mappa', handler: () => this.openMap() },
           { text: 'Annulla', role: 'cancel' },
         ],
