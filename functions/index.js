@@ -5,13 +5,16 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuid } = require('uuid');
-//const uuid = require('uuid/v4');
+const admin = require('firebase-admin');
+
 
 const { Storage } = require('@google-cloud/storage');
 
 const storage = new Storage({
   projectId: 'ionic-booking-e5760'
 });
+
+admin.initializeApp();
 
 exports.storeImage = functions.https.onRequest((req, res) => {
   return cors(req, res, () => {

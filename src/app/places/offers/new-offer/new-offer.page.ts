@@ -5,6 +5,7 @@ import { LoadingController } from '@ionic/angular';
 
 import { PlacesService } from '../../places.service';
 import { PlaceLocation } from '../../location.model';
+import { switchMap } from 'rxjs/operators';
 
 function base64toBlob(base64Data, contentType) {
   contentType = contentType || '';
@@ -94,19 +95,25 @@ export class NewOfferPage implements OnInit {
     if (!this.form.valid || !this.form.get('image').value) {
       return;
     }
-    console.log(this.form.value);
     this.loadingCtrl
       .create({ message: 'Creando un nuovo posto...' })
       .then((loadingEl) => {
         loadingEl.present();
         this.placeService
-          .addPlace(
-            this.form.value.title,
-            this.form.value.description,
-            +this.form.value.price,
-            this.form.value.dateFrom,
-            this.form.value.dateTo,
-            this.form.value.location
+          .uploadImage(this.form.get('image').value)
+          .pipe(
+            switchMap((uploadRes) => {
+              console.log('Immagine caricata', uploadRes);
+              return this.placeService.addPlace(
+                this.form.value.title,
+                this.form.value.description,
+                +this.form.value.price,
+                this.form.value.dateFrom,
+                this.form.value.dateTo,
+                this.form.value.location,
+                uploadRes.imageUrl
+              );
+            })
           )
           .subscribe(() => {
             loadingEl.dismiss();
