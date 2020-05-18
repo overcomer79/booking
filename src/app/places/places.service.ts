@@ -136,49 +136,67 @@ export class PlacesService {
     imageUrl: string
   ) {
     let generatedId: string;
-    const newPlace = new Place(
-      Math.random().toString(),
-      title,
-      description,
-      imageUrl,
-      price,
-      dateFrom,
-      dateTo,
-      this.authService.userId,
-      location
-    );
-    return this.http
-      .post<{ name: string }>(
-        'https://ionic-booking-e5760.firebaseio.com/offered-places.json',
-        {
-          ...newPlace,
-          id: null,
+    let newPlace: Place;
+    return this.authService.userId.pipe(
+      take(1),
+      switchMap((userId) => {
+        if (!userId) {
+          throw new Error('Not user found');
         }
-      )
-      .pipe(
-        switchMap((resData) => {
-          generatedId = resData.name;
-          return this.places;
-        }),
-        take(1),
-        tap((places) => {
-          newPlace.id = generatedId;
-          this._places.next(places.concat(newPlace));
-        })
-      );
+        newPlace = new Place(
+          Math.random().toString(),
+          title,
+          description,
+          imageUrl,
+          price,
+          dateFrom,
+          dateTo,
+          userId,
+          location
+        );
+        return this.http.post<{ name: string }>(
+          'https://ionic-booking-e5760.firebaseio.com/offered-places.json',
+          {
+            ...newPlace,
+            id: null,
+          }
+        );
+      }),
+      switchMap((resData) => {
+        generatedId = resData.name;
+        return this.places;
+      }),
+      take(1),
+      tap((places) => {
+        newPlace.id = generatedId;
+        this._places.next(places.concat(newPlace));
+      })
+    );
   }
 
   updatePlace(placeId: string, title: string, description: string) {
     let updatedPlaces: Place[];
+    let fetchedUserId: string;
 
-    return this.places.pipe(
+    return this.authService.userId.pipe(
       take(1),
-      switchMap((places) => {
-        if (!places || places.length <= 0) {
-          return this.fetchPlaces();
-        } else {
-          return of(places);
+      switchMap((userId) => {
+        if (!userId) {
+          if (!userId) {
+            throw new Error('Not user found');
+          }
         }
+        fetchedUserId = userId;
+        return this.places.pipe(
+          take(1),
+          switchMap((places) => {
+            if (!places || places.length <= 0) {
+              return this.fetchPlaces();
+            } else {
+              return of(places);
+            }
+          })
+        );
       }),
       switchMap((places) => {
         const updatedPlaceIndex = places.findIndex((pl) => pl.id === placeId);
@@ -192,7 +210,7 @@ export class PlacesService {
           oldPlace.price,
           oldPlace.availableFrom,
           oldPlace.availableTo,
-          this.authService.userId,
+          fetchedUserId,
           oldPlace.location
         );
         return this.http.put(

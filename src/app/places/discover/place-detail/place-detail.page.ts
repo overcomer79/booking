@@ -8,6 +8,7 @@ import {
   LoadingController,
   AlertController,
 } from '@ionic/angular';
+import { switchMap, take } from 'rxjs/operators';
 
 import { PlacesService } from '../../places.service';
 import { Place } from '../../place.model';
@@ -47,10 +48,17 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
         return;
       }
       this.isLoading = true;
-      this.placesService.getPlace(paramMap.get('placeId')).subscribe(
+      let fetchedUserId: string;
+      this.authService.userId.pipe(take(1), switchMap(userId => {
+        if (!userId) {
+          throw new Error('Not user found');
+        }
+        fetchedUserId = userId;
+        return this.placesService.getPlace(paramMap.get('placeId'));
+      })).subscribe(
         (place) => {
           this.place = place;
-          this.isBookable = place.userId !== this.authService.userId;
+          this.isBookable = place.userId !== fetchedUserId;
           this.isLoading = false;
         },
         (error) => {

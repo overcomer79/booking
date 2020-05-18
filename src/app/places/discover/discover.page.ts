@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { SegmentChangeEventDetail } from '@ionic/core';
 import { Subscription } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { MenuController } from '@ionic/angular';
 
 import { PlacesService } from '../places.service';
@@ -43,12 +44,15 @@ export class DiscoverPage implements OnInit, OnDestroy {
   onOpenMenu() {
     this.menuCtrl.toggle();
   }
+
   onFilterUpdate(filter: string) {
-    const isShown = (place: Place) =>
-      filter === 'all' || place.userId !== this.authService.userId;
-    this.relevantPlaces = this.loadedPlaces.filter(isShown);
-    this.listedLoadedPlaces = this.relevantPlaces.slice(1);
-    this.filter = filter;
+    this.authService.userId.pipe(take(1)).subscribe((userId) => {
+      const isShown = (place: Place) =>
+        filter === 'all' || place.userId !== userId;
+      this.relevantPlaces = this.loadedPlaces.filter(isShown);
+      this.listedLoadedPlaces = this.relevantPlaces.slice(1);
+      this.filter = filter;
+    });
   }
 
   ngOnDestroy(): void {
