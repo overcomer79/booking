@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 
-interface AuthResponseData {
+export interface AuthResponseData {
   idToken: string; // A Firebase Auth ID token for the newly created user.
   email: string; // The email for the newly created user.
   refreshToken: string; // A Firebase Auth refresh token for the newly created user.
@@ -36,8 +36,11 @@ export class AuthService {
     );
   }
 
-  login() {
-    this._userIsAuthenticated = true;
+  login(email: string, password: string) {
+    return this.http.post<AuthResponseData>(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${environment.firebaseAPIKey}`,
+      { email, password, returnSecureToken: true }
+    );
   }
 
   logout() {
