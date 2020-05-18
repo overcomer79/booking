@@ -49,38 +49,43 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
       }
       this.isLoading = true;
       let fetchedUserId: string;
-      this.authService.userId.pipe(take(1), switchMap(userId => {
-        if (!userId) {
-          throw new Error('Not user found');
-        }
-        fetchedUserId = userId;
-        return this.placesService.getPlace(paramMap.get('placeId'));
-      })).subscribe(
-        (place) => {
-          this.place = place;
-          this.isBookable = place.userId !== fetchedUserId;
-          this.isLoading = false;
-        },
-        (error) => {
-          this.alertCtrl
-            .create({
-              header: 'Errore imprevisto',
-              message:
-                'Non sono riuscito a recuperare i dati richiesti. Per favore riprova più tardi',
-              buttons: [
-                {
-                  text: 'Okay',
-                  handler: () => {
-                    this.router.navigateByUrl('/places/tabs/discover');
+      this.authService.userId
+        .pipe(
+          take(1),
+          switchMap((userId) => {
+            if (!userId) {
+              throw new Error('Not user found');
+            }
+            fetchedUserId = userId;
+            return this.placesService.getPlace(paramMap.get('placeId'));
+          })
+        )
+        .subscribe(
+          (place) => {
+            this.place = place;
+            this.isBookable = place.userId !== fetchedUserId;
+            this.isLoading = false;
+          },
+          (error) => {
+            this.alertCtrl
+              .create({
+                header: 'Errore imprevisto',
+                message:
+                  'Non sono riuscito a recuperare i dati richiesti. Per favore riprova più tardi',
+                buttons: [
+                  {
+                    text: 'Okay',
+                    handler: () => {
+                      this.router.navigateByUrl('/places/tabs/discover');
+                    },
                   },
-                },
-              ],
-            })
-            .then((alertEl) => {
-              alertEl.present();
-            });
-        }
-      );
+                ],
+              })
+              .then((alertEl) => {
+                alertEl.present();
+              });
+          }
+        );
     });
   }
 
