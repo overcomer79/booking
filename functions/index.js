@@ -5,22 +5,34 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuid } = require('uuid');
-const admin = require('firebase-admin');
-
+const fbAdmin = require('firebase-admin');
 
 const { Storage } = require('@google-cloud/storage');
 
 const storage = new Storage({
-  projectId: 'ionic-booking-e5760'
+  projectId: 'ionic-booking-e5760',
 });
 
-admin.initializeApp();
+fbAdmin.initializeApp({
+  credential: fbAdmin.credential.cert(require('./ionic-booking.json')),
+});
 
 exports.storeImage = functions.https.onRequest((req, res) => {
   return cors(req, res, () => {
     if (req.method !== 'POST') {
       return res.status(500).json({ message: 'Not allowed.' });
     }
+
+    if (
+      !req.headers.authorization ||
+      !req.headers.authorization.startsWith('Bearer')
+    ) {
+      return res.status(401).json({ error: 'Unauthorized!' });
+    }
+
+    let idToken;
+    idToken = req.headers.authorization.split('Bearer ')[1];
+
     const busboy = new Busboy({ headers: req.headers });
     let uploadData;
     let oldImagePath;
@@ -42,20 +54,24 @@ exports.storeImage = functions.https.onRequest((req, res) => {
         imagePath = oldImagePath;
       }
 
-      console.log(uploadData.type);
-      return storage
-        .bucket('ionic-booking-e5760.appspot.com')
-        .upload(uploadData.filePath, {
-          uploadType: 'media',
-          destination: imagePath,
-          metadata: {
-            metadata: {
-              contentType: uploadData.type,
-              firebaseStorageDownloadTokens: id
-            }
-          }
+      return fbAdmin
+        .auth()
+        .verifyIdToken(idToken)
+        .then((decodedToken) => {
+          console.log(uploadData.type);
+          return storage
+            .bucket('ionic-booking-e5760.appspot.com')
+            .upload(uploadData.filePath, {
+              uploadType: 'media',
+              destination: imagePath,
+              metadata: {
+                metadata: {
+                  contentType: uploadData.type,
+                  firebaseStorageDownloadTokens: id,
+                },
+              },
+            });
         })
-
         .then(() => {
           return res.status(201).json({
             imageUrl:
@@ -65,10 +81,10 @@ exports.storeImage = functions.https.onRequest((req, res) => {
               encodeURIComponent(imagePath) +
               '?alt=media&token=' +
               id,
-            imagePath: imagePath
+            imagePath: imagePath,
           });
         })
-        .catch(error => {
+        .catch((error) => {
           console.log(error);
           return res.status(401).json({ error: 'Unauthorized!' });
         });

@@ -62,67 +62,77 @@ export class PlacesService {
   }
 
   getPlace(placeId: string) {
-    return this.http
-      .get<PlaceResponse>(
-        `https://ionic-booking-e5760.firebaseio.com/offered-places/${placeId}.json`
-      )
-      .pipe(
-        map((respData) => {
-          return new Place(
-            placeId,
-            respData.title,
-            respData.description,
-            respData.imageUrl,
-            respData.price,
-            new Date(respData.availableFrom),
-            new Date(respData.availableTo),
-            respData.userId,
-            respData.location
-          );
-        })
-      );
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        return this.http.get<PlaceResponse>(
+          `https://ionic-booking-e5760.firebaseio.com/offered-places/${placeId}.json?auth=${token}`
+        );
+      }),
+      map((respData) => {
+        return new Place(
+          placeId,
+          respData.title,
+          respData.description,
+          respData.imageUrl,
+          respData.price,
+          new Date(respData.availableFrom),
+          new Date(respData.availableTo),
+          respData.userId,
+          respData.location
+        );
+      })
+    );
   }
 
   fetchPlaces() {
-    return this.http
-      .get<{ [key: string]: PlaceResponse }>(
-        'https://ionic-booking-e5760.firebaseio.com/offered-places.json'
-      )
-      .pipe(
-        map((resData) => {
-          const places: Place[] = [];
-          for (const key in resData) {
-            if (resData.hasOwnProperty(key)) {
-              places.push(
-                new Place(
-                  key,
-                  resData[key].title,
-                  resData[key].description,
-                  resData[key].imageUrl,
-                  resData[key].price,
-                  new Date(resData[key].availableFrom),
-                  new Date(resData[key].availableTo),
-                  resData[key].userId,
-                  resData[key].location
-                )
-              );
-            }
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        return this.http.get<{ [key: string]: PlaceResponse }>(
+          `https://ionic-booking-e5760.firebaseio.com/offered-places.json?auth=${token}`
+        );
+      }),
+      map((resData) => {
+        const places: Place[] = [];
+        for (const key in resData) {
+          if (resData.hasOwnProperty(key)) {
+            places.push(
+              new Place(
+                key,
+                resData[key].title,
+                resData[key].description,
+                resData[key].imageUrl,
+                resData[key].price,
+                new Date(resData[key].availableFrom),
+                new Date(resData[key].availableTo),
+                resData[key].userId,
+                resData[key].location
+              )
+            );
           }
-          return places;
-        }),
-        tap((places) => {
-          this._places.next(places);
-        })
-      );
+        }
+        return places;
+      }),
+      tap((places) => {
+        this._places.next(places);
+      })
+    );
   }
 
   uploadImage(image: File) {
     const uploadData = new FormData();
     uploadData.append('image', image);
 
-    return this.http.post<{ imageUrl: string; imagePath: string }>(
-      'https://us-central1-ionic-booking-e5760.cloudfunctions.net/storeImage',
-      uploadData
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        return this.http.post<{ imageUrl: string; imagePath: string }>(
+          'https://us-central1-ionic-booking-e5760.cloudfunctions.net/storeImage',
+          uploadData,
+          { headers: { Authorization: 'Bearer ' + token } }
+        );
+      })
     );
   }
 
@@ -136,6 +146,7 @@ export class PlacesService {
     imageUrl: string
   ) {
     let generatedId: string;
+    let fetchedUserId: string;
     let newPlace: Place;
     return this.authService.userId.pipe(
       take(1),
@@ -143,6 +154,10 @@ export class PlacesService {
         if (!userId) {
           throw new Error('Not user found');
         }
+        fetchedUserId = userId;
+        return this.authService.token;
+      }),
+      switchMap((token) => {
         newPlace = new Place(
           Math.random().toString(),
           title,
@@ -151,17 +166,18 @@ export class PlacesService {
           price,
           dateFrom,
           dateTo,
-          userId,
+          fetchedUserId,
           location
         );
         return this.http.post<{ name: string }>(
-          'https://ionic-booking-e5760.firebaseio.com/offered-places.json',
+          `https://ionic-booking-e5760.firebaseio.com/offered-places.json?auth=${token}`,
           {
             ...newPlace,
             id: null,
           }
         );
       }),
+      take(1),
       switchMap((resData) => {
         generatedId = resData.name;
         return this.places;
@@ -177,8 +193,14 @@ export class PlacesService {
   updatePlace(placeId: string, title: string, description: string) {
     let updatedPlaces: Place[];
     let fetchedUserId: string;
+    let fetchedToken: string;
 
-    return this.authService.userId.pipe(
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        fetchedToken = token;
+        return this.authService.userId;
+      }),
       take(1),
       switchMap((userId) => {
         if (!userId) {
@@ -214,7 +236,7 @@ export class PlacesService {
           oldPlace.location
         );
         return this.http.put(
-          `https://ionic-booking-e5760.firebaseio.com/offered-places/${placeId}.json`,
+          `https://ionic-booking-e5760.firebaseio.com/offered-places/${placeId}.json?auth=${fetchedToken}`,
           { ...updatedPlaces[updatedPlaceIndex], id: null }
         );
       }),

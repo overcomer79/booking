@@ -48,6 +48,18 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  get token() {
+    return this._user.asObservable().pipe(
+      map((user) => {
+        if (user) {
+          return user.token;
+        } else {
+          return null;
+        }
+      })
+    );
+  }
+
   constructor(private http: HttpClient) {}
 
   autoLogin() {
@@ -135,7 +147,7 @@ export class AuthService implements OnDestroy {
     this.autoLogout(user.tokenDuration);
     this.storeAuthData(
       userData.localId,
-      userData.email,
+      userData.idToken,
       expirationTime.toISOString(),
       userData.email
     );
